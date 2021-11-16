@@ -1,0 +1,47 @@
+.border-p4-accent {
+    border-color: #204f76!important;
+}
+
+.bg-pre {
+    background-color: #f5f5f5;
+    border: 1px solid #b3b7ff;
+    border-radius: 2px;
+    padding: 1em;
+}
+
+.p4-active {
+    background: black;
+}
+
+.p4-active a {
+    color: white!important;
+}
+
+.nav-link:hover {
+    color: white!important;
+}
+
+.p4-btn {
+    background-color: #3175b0;
+    color: white;
+}
+
+.p4-btn:active, .p4-btn:hover {
+    background-color: #204f76;
+    color: white;
+}
+
+.p4-nav-link, .p4-nav-link:hover {
+    color: #337ab7!important;
+}
+
+.p4-nav-link:hover {
+    background-color: antiquewhite;
+}
+
+.p4-nav-link.active {
+    background-color: #3175b0!important;
+}
+.p4-nav-link.active, .p4-nav-link.active:hover {
+    color: white!important;
+}
