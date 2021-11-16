@@ -2,6 +2,7 @@
 // Loading all constants
 require_once('var/constants.php');
 require_once('classes/Auth.php');
+require_once ('classes/UserManager.php');
 
 // Start the session_start
 session_start();

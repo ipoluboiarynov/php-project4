@@ -39,12 +39,12 @@
             foreach ($statistics as $record) {
 
                 $username = $d->read($record->__get('user_id'))->__get('username');
-                echo '<td>'. $username .'</td>';
+                echo '<tr><td>'. $username .'</td>';
                 echo '<td>'. $record->__get('create_request').'</td>';
                 echo '<td>'. $record->__get('read_request').'</td>';
                 echo '<td>'. $record->__get('readAll_request').'</td>';
                 echo '<td>'. $record->__get('update_request').'</td>';
-                echo '<td>'. $record->__get('delete_request').'</td>';
+                echo '<td>'. $record->__get('delete_request').'</td></tr>';
             }
             ?>
             </tbody>

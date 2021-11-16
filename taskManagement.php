@@ -15,8 +15,6 @@ if (isset($_POST['read-all-submit'])) {
     $all_tasks = getAllTasks($user_id);
     $ur_id = $userRequestsManager->isExistsForUser($user_id);
     $userRequestsManager->update($ur_id, 'readAll_request', $user_id);
-
-
 }
 
 function getAllTasks($user_id): array {
@@ -45,13 +43,19 @@ if (isset($_POST['read-submit'])) {
         $id = $_POST['read-id'];
         $taskManager = new TaskManager();
         $read_task = $taskManager->read($id, $user_id);
-        if (!$read_task) {
-            $error_msg = 'Task with id #'.$id.' not found.';
-        }
-        $userRequestsManager = new UserRequestsManager();
-        $ur_id = $userRequestsManager->isExistsForUser($user_id);
-        $userRequestsManager->update($ur_id, 'read_request', $user_id);
         $_POST = array();
+        if (!$read_task) {
+            $error_msg = 'Task with id #'.$id.' not found for this user.';
+        } else {
+            $userRequestsManager = new UserRequestsManager();
+            $ur_id = $userRequestsManager->isExistsForUser($user_id);
+            if ($ur_id) {
+                $userRequestsManager->update($ur_id, 'read_request', $user_id);
+            } else {
+                $error_msg = 'Something wrong with statistics for this user.';
+            }
+
+        }
     }
     else {
         $error_msg = 'Id field has not to be empty.';
@@ -65,10 +69,18 @@ if (isset($_POST['update-submit'])) {
         $taskManager = new TaskManager();
         $updated_tasks = $taskManager->update($id, $description, $user_id);
         $_POST = array();
-        $confirm_msg = 'The task has been updated.';
-        $userRequestsManager = new UserRequestsManager();
-        $ur_id = $userRequestsManager->isExistsForUser($user_id);
-        $userRequestsManager->update($ur_id, 'update_request', $user_id);
+        if ($updated_tasks == 0) {
+            $error_msg = 'No task with this id was found for this user.';
+        } else {
+            $userRequestsManager = new UserRequestsManager();
+            $ur_id = $userRequestsManager->isExistsForUser($user_id);
+            if ($ur_id) {
+                $userRequestsManager->update($ur_id, 'update_request', $user_id);
+                $confirm_msg = 'The task has been updated.';
+            } else {
+                $error_msg = 'Something wrong with statistics for this user.';
+            }
+        }
     } else {
         $error_msg = 'Description and Id fields have not to be empty.';
     }
@@ -80,10 +92,18 @@ if (isset($_POST['delete-submit'])) {
         $taskManager = new TaskManager();
         $deleted_tasks = $taskManager->delete($id, $user_id);
         $_POST = array();
-        $confirm_msg = 'The task has been deleted.';
-        $userRequestsManager = new UserRequestsManager();
-        $ur_id = $userRequestsManager->isExistsForUser($user_id);
-        $userRequestsManager->update($ur_id, 'delete_request', $user_id);
+        if ($deleted_tasks == 0) {
+            $error_msg = 'No task with this id was found for this user.';
+        } else {
+            $userRequestsManager = new UserRequestsManager();
+            $ur_id = $userRequestsManager->isExistsForUser($user_id);
+            if ($ur_id) {
+                $userRequestsManager->update($ur_id, 'delete_request', $user_id);
+                $confirm_msg = 'The task has been deleted.';
+            } else {
+                $error_msg = 'Something wrong with statistics for this user.';
+            }
+        }
     } else {
         $error_msg = 'Id field has not to be empty.';
     }
@@ -241,13 +261,13 @@ if (isset($_POST['delete-submit'])) {
             let error = document.getElementById('error_msg');
             let confirm = document.getElementById('confirm_msg');
             if (error) {
-                console.log(1);
+                let error_element = document.getElementById('error_msg');
+                error_element.classList.add('d-none');
             }
             if (confirm) {
-                confirm.classList.add("d-none");
+                let confirm_element = document.getElementById('error_msg');
+                confirm_element.classList.add('d-none');
             }
-            // document.getElementById('error_msg').classList.add('d-none');
-            // document.getElementById('confirm_msg').classList.add('d-none');
         })
     })
 </script>

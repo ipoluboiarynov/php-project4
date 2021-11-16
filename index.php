@@ -3,6 +3,10 @@ session_start();
 require_once('var/protect.php');
 require_once ('classes/UserManager.php');
 
+if (isset($_GET['error_msg'])) {
+    $error_msg = $_GET['error_msg'];
+}
+
 if (isset($_POST['submit'])) {
     $userManager = new UserManager();
     $id = $_SESSION['user_id'] ?? $_COOKIE['user_id'];
@@ -38,7 +42,9 @@ if (isset($_POST['submit'])) {
         <form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="post">
             <button class="btn p4-btn bg-gradient mb-3" type="submit" name="submit">Generate New API Key</button>
         </form>
-        <p><?php echo $_SESSION['username'] ?? $_COOKIE['username']; ?>, if you are no longer using the <span class="fw-bold">Student Service API</span>, consider <a href="#">deleting</a> your account.</p>
+        <p><?php echo $_SESSION['username'] ?? $_COOKIE['username']; ?>, if you are no longer using the <span class="fw-bold">
+                Student Service API</span>, consider <a href="deleteUser.php">deleting</a> your account.
+        </p>
     </div>
 </main>
 <?php require_once('html/footer.html'); ?>

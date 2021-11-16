@@ -16,5 +16,9 @@ class UserRequests {
     public function __set($ivar, $value) {
         $this->$ivar = $value;
     }
+
+    public function iterate($ivar) {
+        $this->$ivar++;
+    }
 }
 ?>

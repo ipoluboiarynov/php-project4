@@ -5,28 +5,39 @@
 
     class UserManager {
 
-        public function create($username, $password): int {
+        public function create($username, $password): string {
             $api_key = $this->generate_api_key(API_KEY_LENGTH);
-            $created  = date('Y-m-d H:i:s');
-
+            $created = date('Y-m-d H:i:s');
+            $user_id = null;
             $db = new PDO(sprintf("mysql:host=%s;dbname=%s", DB_DOMAIN, DB_NAME),
                 DB_USER, DB_PASSWORD);
-
-            $sql = "INSERT INTO user(`username`, `password`, `api_key`, `created`) VALUES(:username, SHA(:password), :api_key, :created)";
 
             $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
             try {
-                $query = $db->prepare($sql);
-                $query->bindParam(':username', $username);
-                $query->bindParam(':api_key', $api_key);
-                $query->bindParam(':password', $password);
-                $query->bindParam(':created', $created);
-                $query->execute();
+                $db->beginTransaction();
+
+                $sqlOne = "INSERT INTO user(`username`, `password`, `api_key`, `created`) VALUES(:username, SHA(:password), :api_key, :created)";
+                $queryOne = $db->prepare($sqlOne);
+                $queryOne->bindParam(':username', $username);
+                $queryOne->bindParam(':api_key', $api_key);
+                $queryOne->bindParam(':password', $password);
+                $queryOne->bindParam(':created', $created);
+                $queryOne->execute();
+                $user_id = $db->lastInsertId();
+
+                $sqlTwo = "INSERT INTO user_requests (`user_id`) VALUES (:user_id)";
+                $query2 = $db->prepare($sqlTwo);
+                $query2->bindParam(':user_id', $user_id);
+                $query2->execute();
+
+                $db->commit();
+
             } catch (Exception $ex) {
                 echo "{$ex->getMessage()}<br/>";
+                $db->rollBack();
             }
-            return $db->lastInsertId();
+            return $user_id;
         }
 
         public function read($id): User | null {
@@ -132,26 +143,58 @@
             return false;
         }
 
-        public function delete($id): int {
-
+        public function checkApiKey($id, $api_key): bool {
             $db = new PDO(sprintf("mysql:host=%s;dbname=%s", DB_DOMAIN, DB_NAME),
                 DB_USER, DB_PASSWORD);
 
-            $sql = "DELETE FROM user WHERE id=:id";
+            $sql = "SELECT * FROM user WHERE id=:id AND api_key=:api_key LIMIT 1";
 
             $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-            $rows_affected = 0;
 
             try {
                 $query = $db->prepare($sql);
                 $query->bindParam(':id', $id);
+                $query->bindParam(':api_key', $api_key);
                 $query->execute();
-                $rows_affected = $query->rowCount();
+                $result_arr = $query->fetchAll(PDO::FETCH_CLASS, 'User');
+                if (count($result_arr) == 1) {
+                    return true;
+                }
             } catch (Exception $ex) {
                 echo "{$ex->getMessage()}<br/>";
             }
+            return false;
+        }
 
+        public function delete($id): int {
+            $db = new PDO(sprintf("mysql:host=%s;dbname=%s", DB_DOMAIN, DB_NAME),
+                DB_USER, DB_PASSWORD);
+            $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $rows_affected = 0;
+            try {
+                $db->beginTransaction();
+
+                $sqlOne = "DELETE FROM task WHERE `user_id`=:id";
+                $queryOne = $db->prepare($sqlOne);
+                $queryOne->bindParam(':id', $id);
+                $queryOne->execute();
+
+                $sqlTwo = "DELETE FROM user_requests WHERE `user_id`=:user_id";
+                $queryTwo = $db->prepare($sqlTwo);
+                $queryTwo->bindParam(':user_id', $id);
+                $queryTwo->execute();
+
+                $sqlThree = "DELETE FROM user WHERE id=:id";
+                $queryThree = $db->prepare($sqlThree);
+                $queryThree->bindParam(':id', $id);
+                $queryThree->execute();
+                $rows_affected = $queryThree->rowCount();
+
+                $db->commit();
+            } catch (Exception $ex) {
+                echo "{$ex->getMessage()}<br/>";
+                $db->rollBack();
+            }
             return  $rows_affected;
         }
 
