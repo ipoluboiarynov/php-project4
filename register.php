@@ -1,7 +1,7 @@
 <?php
 // Loading all constants
 require_once('var/constants.php');
-require_once('classes/Auth.php');
+require_once('services/auth_service.php');
 
 // Clear the error message
 $error_msg = "";
@@ -14,9 +14,11 @@ if (isset($_POST['submit'])) {
     // Trying to set up the data
     if (!empty($username) && !empty($password) && !empty($confirm) && ($password == $confirm)) {
         $result = register($username, $password);
-        if ($result) {
+        if ($result == 1) {
             $confirm_msg = 'New account has been created. Now just log in.';
             header('Location: ' . PAGE_LOGIN . '?confirm_msg=' . $confirm_msg);
+        } else {
+            $error_msg = 'New account has NOT been created. Try again.';
         }
     } else {
         $error_msg = "Enter all of the sign-up data.";

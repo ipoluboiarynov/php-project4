@@ -1,8 +1,7 @@
 <?php
 // Loading all constants
 require_once('var/constants.php');
-require_once('classes/Auth.php');
-require_once ('classes/UserManager.php');
+require_once('services/auth_service.php');
 
 // Start the session_start
 session_start();
@@ -22,32 +21,24 @@ if (isset($_GET['confirm_msg'])) {
 }
 
 // If the user isn't logged in, try to log them in
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_COOKIE['api_key'])) {
     if (isset($_POST['submit'])) {
-
         $user_username = $_POST['username'];
         $user_password = $_POST['password'];
 
         // Trying login
         if (!empty($user_username) && !empty($user_password)) {
-            // Look up the username and password in the database
             $result = login($user_username, $user_password);
 
             if (gettype($result) == 'object') {
-                // The log-in is OK than set the user_id, username and api_key to cookies and redirect to the home page
-                $_SESSION['user_id'] = $result->__get('id');
-                $_SESSION['username'] = $result->__get('username');
-                $_SESSION['api_key'] = $result->__get('api_key');
-                setcookie('user_id', $result->__get('id'), time() + TOKENS_LIFE);
-                setcookie('username', $result->__get('username'), time() + TOKENS_LIFE);
-                setcookie('api_key', $result->__get('api_key'), time() + TOKENS_LIFE);
+                setcookie('username', $result->username, time() + 360);
+                setcookie('api_key', $result->api_key, time() + 360);
+                header("Location: " . PAGE_HOME);
             } else {
-                // The username/password are incorrect so set an error message
-                $error_msg = $result . '. Enter a valid username and password.';
+                $error_msg = $result . 'User not found try again.';
             }
         } else {
-            // The username/password weren't entered so set an error message
-            $error_msg = 'Please, enter your username and password to log in form.';
+            $error_msg = 'Fill in all fields of the form.';
         }
     }
 }
@@ -87,7 +78,7 @@ if (!isset($_SESSION['user_id'])) {
                                 <?php endif; ?>
 
 
-                                <?php if (empty($_SESSION['user_id'])):?>
+<!--                                --><?php //if (empty($_COOKIE['api_key'])):?>
                                 <form method="post" action="<?php echo $_SERVER['PHP_SELF']; ?>">
                                     <div class="form-outline mb-4">
                                         <input type="text" id="username" name="username"
@@ -105,13 +96,9 @@ if (!isset($_SESSION['user_id'])) {
                                     </button>
                                     <div class="mt-3">or <a href="<?php echo PAGE_SIGNUP ?>">Sign Up<a/></div>
                                 </form>
-                                <?php else:
-                                    if (isset($_SESSION['current_page']) && !empty($_SESSION['current_page'])) {
-                                        header('Location: ' . $_SESSION['current_page']);
-                                    } else {
-                                        header('Location: ' . PAGE_HOME);
-                                    }
-                                endif;
+<!--                                --><?php //else:
+//                                    header('Location: ' . PAGE_HOME);
+//                                endif;
                                 ?>
                             </div>
                         </div>

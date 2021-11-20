@@ -1,12 +1,12 @@
 <?php
     require_once('ITaskManager.php');
-    require_once('Task.php');
-    require_once('var/constants.php');
+    require_once('./classes/Task.php');
+    require_once('./var/constants.php');
 
     class TaskManager implements ITaskManager {
 
         // add a record to the database and return the id of the newly inserted record
-        public function create($description, $user_id): int {
+        public function create($description, $user_id) {
 
             $db = new PDO(sprintf("mysql:host=%s;dbname=%s", DB_DOMAIN, DB_NAME),
                 DB_USER, DB_PASSWORD);
@@ -30,7 +30,7 @@
         // return the Task record that corresponds to the passed in $id parameter.
         // If no record exists, throw an Exception.
         // The Task record returns as a Class object
-        public function read($id, $user_id): Task | null {
+        public function read($id, $user_id) {
             $db = new PDO(sprintf("mysql:host=%s;dbname=%s", DB_DOMAIN, DB_NAME),
                 DB_USER, DB_PASSWORD);
 
@@ -56,15 +56,13 @@
 
         // return all of the Task records from the Task table.
         // The Task records returns as an array of Class objects
-        public function readAll($user_id): array {
+        public function readAll($user_id) {
             $db = new PDO(sprintf("mysql:host=%s;dbname=%s", DB_DOMAIN, DB_NAME),
                 DB_USER, DB_PASSWORD);
 
             $sql = "SELECT * FROM task WHERE `user_id`=:user_id";
 
             $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-            $results = array();
 
             try {
                 $query = $db->prepare($sql);
@@ -75,12 +73,12 @@
                 echo "{$ex->getMessage()}<br/>";
             }
 
-            return $results;
+            return $results ?? null;
         }
 
         // change the description of the Task with id = $id to the $newDesc.
         // Return the number of rows affected by the update
-        public function update($id, $description, $user_id): int {
+        public function update($id, $description, $user_id) {
 
             $db = new PDO(sprintf("mysql:host=%s;dbname=%s", DB_DOMAIN, DB_NAME),
                 DB_USER, DB_PASSWORD);
@@ -107,7 +105,7 @@
 
         // remove the Task record with the id = $id.
         // Return the number of rows affected by the update
-        public function delete($id, $user_id): int {
+        public function delete($id, $user_id) {
 
             $db = new PDO(sprintf("mysql:host=%s;dbname=%s", DB_DOMAIN, DB_NAME),
                 DB_USER, DB_PASSWORD);

@@ -4,7 +4,7 @@ class UserRequests {
     private string $user_id;
     private string $create_request;
     private string $read_request;
-    private string $read_all_request;
+    private string $readAll_request;
     private string $update_request;
     private string $delete_request;
 

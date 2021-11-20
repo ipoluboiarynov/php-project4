@@ -2,26 +2,25 @@
 
 session_start();
 
-require_once('var/constants.php');
 require_once('var/protect.php');
-require_once ('classes/UserManager.php');
+require_once('var/constants.php');
+require_once('services/user_service.php');
 
 if (isset($_POST['submit'])) {
     $current_password = $_POST['current'];
     $new_password = $_POST['new'];
     $confirm_password = $_POST['confirm'];
-    $id = $_SESSION['user_id'] ?? $_COOKIE['user_id'];
-    $userManager = new UserManager();
-    $isPasswordExists = $userManager->checkPassword($current_password, $_SESSION['user_id'] ?? $_COOKIE['user_id']);
-    if ($isPasswordExists) {
-        if ($new_password == $confirm_password) {
-            $userManager->changePassword($id, $new_password);
+    if ($new_password == $confirm_password) {
+        $result = changePassword($current_password, $new_password);
+        if ($result == 1) {
             $confirm_msg = 'Password changed.';
+        } else if ($result == 0) {
+            $error_msg = 'Password wrong!';
         } else {
-            $error_msg = 'Wrong password confirm. Try again.';
+            $error_msg = $result;
         }
     } else {
-        $error_msg = 'Wrong password. Try again.';
+        $error_msg = 'Wrong password confirm. Try again.';
     }
 }
 ?>
@@ -35,7 +34,7 @@ if (isset($_POST['submit'])) {
 <?php require_once('html/header.php'); ?>
 <main>
     <div class="container-fluid">
-        <h3 class="py-3">Password Update for <?php echo $_SESSION['username'] ?? $_COOKIE['username']; ?></h3>
+        <h3 class="py-3">Password Update for <?php echo $_COOKIE['username'] ?? ''; ?></h3>
         <?php if (!empty($error_msg)) : ?>
             <div class="alert alert-danger d-flex align-items-center" role="alert">
                 <i class="fas fa-exclamation-triangle text-danger me-3"></i>

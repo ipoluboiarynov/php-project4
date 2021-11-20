@@ -1,11 +1,11 @@
 <?php
     require_once('ITaskManager.php');
-    require_once('User.php');
+    require_once('./classes/User.php');
     require_once('var/constants.php');
 
     class UserManager {
 
-        public function create($username, $password): string {
+        public function create($username, $password) {
             $api_key = $this->generate_api_key(API_KEY_LENGTH);
             $created = date('Y-m-d H:i:s');
             $user_id = null;
@@ -17,7 +17,7 @@
             try {
                 $db->beginTransaction();
 
-                $sqlOne = "INSERT INTO user(`username`, `password`, `api_key`, `created`) VALUES(:username, SHA(:password), :api_key, :created)";
+                $sqlOne = "INSERT INTO users(`username`, `password`, `api_key`, `created`) VALUES(:username, SHA(:password), :api_key, :created)";
                 $queryOne = $db->prepare($sqlOne);
                 $queryOne->bindParam(':username', $username);
                 $queryOne->bindParam(':api_key', $api_key);
@@ -40,11 +40,11 @@
             return $user_id;
         }
 
-        public function read($id): User | null {
+        public function read($id) {
             $db = new PDO(sprintf("mysql:host=%s;dbname=%s", DB_DOMAIN, DB_NAME),
                 DB_USER, DB_PASSWORD);
 
-            $sql = "SELECT * FROM user WHERE id=:id LIMIT 1";
+            $sql = "SELECT * FROM users WHERE id=:id LIMIT 1";
 
             $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
@@ -66,7 +66,7 @@
             $db = new PDO(sprintf("mysql:host=%s;dbname=%s", DB_DOMAIN, DB_NAME),
                 DB_USER, DB_PASSWORD);
 
-            $sql = "SELECT * FROM user WHERE username=:username LIMIT 1";
+            $sql = "SELECT * FROM users WHERE username=:username LIMIT 1";
 
             $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
@@ -84,89 +84,117 @@
             return null;
         }
 
-        public function changePassword($id, $new_password): int {
+        public function getUsernameById($id): string {
+            $db = new PDO(sprintf("mysql:host=%s;dbname=%s", DB_DOMAIN, DB_NAME),
+                DB_USER, DB_PASSWORD);
+
+            $sql = "SELECT * FROM users WHERE id=:id LIMIT 1";
+
+            $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+            try {
+                $query = $db->prepare($sql);
+                $query->bindParam(':id', $id);
+                $query->execute();
+                $result_arr = $query->fetchAll(PDO::FETCH_CLASS, 'User');
+                if (isset($result_arr[0])) {
+                    return $result_arr[0]->__get('username');
+                }
+            } catch (Exception $ex) {
+                echo "{$ex->getMessage()}<br/>";
+            }
+            return '';
+        }
+
+        public function changePassword($id, $new_password) {
 
             $db = new PDO(sprintf("mysql:host=%s;dbname=%s", DB_DOMAIN, DB_NAME),
                 DB_USER, DB_PASSWORD);
 
-            $sql = "UPDATE user SET `password`=SHA(:password) WHERE `id`=:id";
+            $sql = "UPDATE users SET `password`=SHA(:password) WHERE `id`=:id";
 
             $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-            $rows_affected = 0;
 
             try {
                 $query = $db->prepare($sql);
                 $query->bindParam(':id', $id);
                 $query->bindParam(':password', $new_password);
                 $query->execute();
-                $rows_affected = $query->rowCount();
+                return $query->rowCount();
             } catch (Exception $ex) {
                 echo "{$ex->getMessage()}<br/>";
             }
-
-            return  $rows_affected;
         }
 
-        public function changeApiKey($id): string | null {
+        public function changeApiKey($id) {
 
             $api_key = $this->generate_api_key(API_KEY_LENGTH);
             $db = new PDO(sprintf("mysql:host=%s;dbname=%s", DB_DOMAIN, DB_NAME),
                 DB_USER, DB_PASSWORD);
 
-            $sql = "UPDATE user SET `api_key`=:api_key WHERE `id`=:id";
+            $sql = "UPDATE users SET `api_key`=:api_key WHERE `id`=:id";
 
             $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-            $rows_affected = 0;
 
             try {
                 $query = $db->prepare($sql);
                 $query->bindParam(':id', $id);
                 $query->bindParam(':api_key', $api_key);
                 $query->execute();
-                $rows_affected = $query->rowCount();
+                if ($query->rowCount() == 0) {
+                    return 0;
+                }
+                return $api_key;
             } catch (Exception $ex) {
                 echo "{$ex->getMessage()}<br/>";
             }
-
-            if ($rows_affected > 0) { return $api_key; }
-            return null;
         }
 
-        public function checkPassword($password, $id): bool {
-            $user_by_id = $this->read($id);
-            if ($user_by_id) {
-                $user_by_id->__get('password') == $password;
-                return true;
-            }
-            return false;
-        }
-
-        public function checkApiKey($id, $api_key): bool {
+        public function checkPassword($id, $password) {
             $db = new PDO(sprintf("mysql:host=%s;dbname=%s", DB_DOMAIN, DB_NAME),
                 DB_USER, DB_PASSWORD);
 
-            $sql = "SELECT * FROM user WHERE id=:id AND api_key=:api_key LIMIT 1";
+            $sql = "SELECT * FROM users WHERE `password`=SHA(:password) AND `id`=:id LIMIT 1";
+            $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+
+            try {
+                $query = $db->prepare($sql);
+                $query->bindParam(':id', $id);
+                $query->bindParam(':password', $password);
+                $query->execute();
+                return  $query->rowCount();
+            } catch (Exception $ex) {
+                echo "{$ex->getMessage()}<br/>";
+            }
+        }
+
+        public function getUserIdByApiKey($api_key) {
+            $db = new PDO(sprintf("mysql:host=%s;dbname=%s", DB_DOMAIN, DB_NAME),
+                DB_USER, DB_PASSWORD);
+
+            $sql = "SELECT * FROM users WHERE api_key=:api_key LIMIT 1";
 
             $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
             try {
                 $query = $db->prepare($sql);
-                $query->bindParam(':id', $id);
                 $query->bindParam(':api_key', $api_key);
                 $query->execute();
                 $result_arr = $query->fetchAll(PDO::FETCH_CLASS, 'User');
                 if (count($result_arr) == 1) {
-                    return true;
+                    $id = $result_arr[0]->__get('id');
+                    if ($id) {
+                        return $id;
+                    }
                 }
             } catch (Exception $ex) {
                 echo "{$ex->getMessage()}<br/>";
             }
-            return false;
+            return 0;
         }
 
-        public function delete($id): int {
+        public function delete($id) {
             $db = new PDO(sprintf("mysql:host=%s;dbname=%s", DB_DOMAIN, DB_NAME),
                 DB_USER, DB_PASSWORD);
             $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -184,7 +212,7 @@
                 $queryTwo->bindParam(':user_id', $id);
                 $queryTwo->execute();
 
-                $sqlThree = "DELETE FROM user WHERE id=:id";
+                $sqlThree = "DELETE FROM users WHERE id=:id";
                 $queryThree = $db->prepare($sqlThree);
                 $queryThree->bindParam(':id', $id);
                 $queryThree->execute();
@@ -198,7 +226,7 @@
             return  $rows_affected;
         }
 
-        function generate_api_key($length): string {
+        function generate_api_key($length) {
             $random = '';
             for ($i = 0; $i < $length; $i++) {
                 $random_number = rand(1, 2);

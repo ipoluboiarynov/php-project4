@@ -1,10 +1,8 @@
 <?php
-class User {
+class Task implements JsonSerializable {
     private int $id;
-    private string $name;
-    private string $password;
-    private string $api_key;
-    private string $created;
+    private string $description;
+    private int $user_id;
 
     // Magic Get/Set
     public function __get($ivar) {
@@ -13,6 +11,10 @@ class User {
 
     public function __set($ivar, $value) {
         $this->$ivar = $value;
+    }
+
+    public function jsonSerialize() {
+        return get_object_vars($this);
     }
 }
 ?>

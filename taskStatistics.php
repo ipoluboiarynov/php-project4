@@ -1,11 +1,13 @@
 <?php
-    require_once('var/constants.php');
     require_once('var/protect.php');
-    require_once('classes/UserRequestsManager.php');
-    require_once('classes/UserManager.php');
+    require_once('var/constants.php');
+    require_once('services/request_service.php');
 
-    $userRequestsManager = new UserRequestsManager();
-    $statistics = $userRequestsManager->readAll();
+    $statistics = getAllRequests();
+    if (gettype($statistics) != 'array') {
+        echo $statistics;
+        $statistics = array();
+    }
 ?>
 
 <!DOCTYPE html>
@@ -34,17 +36,14 @@
             </tr>
 
             <?php
-            $d = new UserManager();
 
             foreach ($statistics as $record) {
-
-                $username = $d->read($record->__get('user_id'))->__get('username');
-                echo '<tr><td>'. $username .'</td>';
-                echo '<td>'. $record->__get('create_request').'</td>';
-                echo '<td>'. $record->__get('read_request').'</td>';
-                echo '<td>'. $record->__get('readAll_request').'</td>';
-                echo '<td>'. $record->__get('update_request').'</td>';
-                echo '<td>'. $record->__get('delete_request').'</td></tr>';
+                echo '<tr><td>'. $record->username.'</td>';
+                echo '<td>'. $record->create_request.'</td>';
+                echo '<td>'. $record->read_request.'</td>';
+                echo '<td>'. $record->readAll_request.'</td>';
+                echo '<td>'. $record->update_request.'</td>';
+                echo '<td>'. $record->delete_request.'</td></tr>';
             }
             ?>
             </tbody>

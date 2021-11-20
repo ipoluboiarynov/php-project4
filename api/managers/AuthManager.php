@@ -1,16 +1,17 @@
 <?php
-    require_once('classes/UserManager.php');
-require_once('classes/User.php');
+require_once('./managers/UserManager.php');
+require_once('./classes/User.php');
 
-    function login($username, $password): User | string {
+class AuthManager {
+    public function login($username, $password) {
         $userManager = new UserManager();
         $message = '';
         $user = $userManager->getUserByUsername($username);
         if (!empty($user) && gettype($user) == 'object') {
             $user_password = $user->__get('password');
             if ($user_password == sha1($password)) {
-                $user->__set('password', '');
-                return $user;
+                $js = ["username" => $user->__get('username'), 'api_key' => $user->__get('api_key')];
+                return json_encode($js);
             } else {
                 $message = 'Wrong password';
             }
@@ -20,7 +21,7 @@ require_once('classes/User.php');
         return $message;
     }
 
-    function register($username, $password): bool {
+    public function register($username, $password) {
         $userManager = new UserManager();
         $data = $userManager->getUserByUsername($username);
         if (empty($data)) {
@@ -32,4 +33,5 @@ require_once('classes/User.php');
         return false;
     }
 
+}
 ?>

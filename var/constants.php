@@ -1,11 +1,6 @@
 <?php
-const DB_DOMAIN = 'localhost';
-const DB_NAME = 'student_service';
-const DB_USER = 'root';
-const DB_PASSWORD = 'rootadmin';
-
-const API_KEY_LENGTH = 32;
-const TOKENS_LIFE = 60 * 60 * 1; // 1 hour
+//const BACKEND_DOMAIN = 'http://localhost:8088/php-project4/api/';
+const BACKEND_DOMAIN = 'https://project4.ivan4usa.com/api/';
 
 const PAGE_HOME = 'index.php';
 const PAGE_SIGNUP = 'register.php';

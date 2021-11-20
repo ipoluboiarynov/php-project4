@@ -4,35 +4,34 @@ session_start();
 
 require_once('var/constants.php');
 require_once('var/protect.php');
-require_once ('classes/TaskManager.php');
-require_once ('classes/UserRequestsManager.php');
+require_once('services/task_service.php');
+require_once('services/request_service.php');
 
-$user_id = $_SESSION['user_id'] ?? $_COOKIE['user_id'];
-
+$username = $_COOKIE['username'];
 
 if (isset($_POST['read-all-submit'])) {
-    $userRequestsManager = new UserRequestsManager();
-    $all_tasks = getAllTasks($user_id);
-    $ur_id = $userRequestsManager->isExistsForUser($user_id);
-    $userRequestsManager->update($ur_id, 'readAll_request', $user_id);
+    $all_tasks = readAllTasks();
+    if (isset($all_tasks) && $all_tasks != "[]") {
+        updateRequest('readAll_request');
+    } else {
+        $error_msg = "No tasks for current user found.";
+    }
+    $_POST = array();
 }
-
-function getAllTasks($user_id): array {
-    $taskManager = new TaskManager();
-    return $taskManager->readAll($user_id);
-}
-
 
 if (isset($_POST['create-submit'])) {
     if (isset($_POST['create-description']) && strlen(trim($_POST['create-description'])) > 0) {
         $description = $_POST['create-description'];
-        $taskManager = new TaskManager();
-        $taskManager->create($description, $user_id);
-        $userRequestsManager = new UserRequestsManager();
-        $id = $userRequestsManager->isExistsForUser($user_id);
-        $userRequestsManager->update($id, 'create_request', $user_id);
+        $created_task_id = createTask($description);
+        if ((int) $created_task_id != 0) {
+            $rows_affected = updateRequest('create_request');
+            if ($rows_affected > 0) {
+                $confirm_msg = 'New task has been created with id ' . $created_task_id;
+            } else {
+                $confirm_msg = 'New task has been created with id ' . $created_task_id . ', but request is not counted';
+            }
+        }
         $_POST = array();
-        $confirm_msg = 'New task has been created.';
     } else {
         $error_msg = 'Description field has not to be empty.';
     }
@@ -41,23 +40,14 @@ if (isset($_POST['create-submit'])) {
 if (isset($_POST['read-submit'])) {
     if (isset($_POST['read-id']) && strlen(trim($_POST['read-id'])) > 0) {
         $id = $_POST['read-id'];
-        $taskManager = new TaskManager();
-        $read_task = $taskManager->read($id, $user_id);
-        $_POST = array();
-        if (!$read_task) {
+        $read_task = readTaskById($id);
+        if ($read_task == 'null') {
             $error_msg = 'Task with id #'.$id.' not found for this user.';
         } else {
-            $userRequestsManager = new UserRequestsManager();
-            $ur_id = $userRequestsManager->isExistsForUser($user_id);
-            if ($ur_id) {
-                $userRequestsManager->update($ur_id, 'read_request', $user_id);
-            } else {
-                $error_msg = 'Something wrong with statistics for this user.';
-            }
-
+            updateRequest('read_request');
         }
-    }
-    else {
+        $_POST = array();
+    } else {
         $error_msg = 'Id field has not to be empty.';
     }
 }
@@ -66,20 +56,13 @@ if (isset($_POST['update-submit'])) {
     if (isset($_POST['update-id']) && isset($_POST['update-description']) && strlen(trim($_POST['update-description'])) > 0) {
         $description = $_POST['update-description'];
         $id = $_POST['update-id'];
-        $taskManager = new TaskManager();
-        $updated_tasks = $taskManager->update($id, $description, $user_id);
+        $updated_rows = updateTask($id, $description);
         $_POST = array();
-        if ($updated_tasks == 0) {
+        if ($updated_rows == 0) {
             $error_msg = 'No task with this id was found for this user.';
         } else {
-            $userRequestsManager = new UserRequestsManager();
-            $ur_id = $userRequestsManager->isExistsForUser($user_id);
-            if ($ur_id) {
-                $userRequestsManager->update($ur_id, 'update_request', $user_id);
-                $confirm_msg = 'The task has been updated.';
-            } else {
-                $error_msg = 'Something wrong with statistics for this user.';
-            }
+            updateRequest('update_request');
+            $confirm_msg = 'The task has been updated.';
         }
     } else {
         $error_msg = 'Description and Id fields have not to be empty.';
@@ -89,20 +72,13 @@ if (isset($_POST['update-submit'])) {
 if (isset($_POST['delete-submit'])) {
     if (isset($_POST['delete-id'])) {
         $id = $_POST['delete-id'];
-        $taskManager = new TaskManager();
-        $deleted_tasks = $taskManager->delete($id, $user_id);
+        $deleted_rows = deleteTask($id);
         $_POST = array();
-        if ($deleted_tasks == 0) {
+        if ($deleted_rows == 0) {
             $error_msg = 'No task with this id was found for this user.';
         } else {
-            $userRequestsManager = new UserRequestsManager();
-            $ur_id = $userRequestsManager->isExistsForUser($user_id);
-            if ($ur_id) {
-                $userRequestsManager->update($ur_id, 'delete_request', $user_id);
-                $confirm_msg = 'The task has been deleted.';
-            } else {
-                $error_msg = 'Something wrong with statistics for this user.';
-            }
+            updateRequest('delete_request');
+            $confirm_msg = 'The task has been deleted.';
         }
     } else {
         $error_msg = 'Id field has not to be empty.';
@@ -121,7 +97,7 @@ if (isset($_POST['delete-submit'])) {
 <?php require_once('html/header.php'); ?>
 <main>
     <div class="container-fluid">
-        <h3 class="py-3">Task Management for <?php echo $user_id; ?></h3>
+        <h3 class="py-3">Task Management for <?php echo $username ?? ''; ?></h3>
         <?php if (!empty($error_msg)) : ?>
             <div class="alert alert-danger d-flex align-items-center" role="alert" id="error_msg">
                 <i class="fas fa-exclamation-triangle text-danger me-3"></i>
@@ -183,21 +159,25 @@ if (isset($_POST['delete-submit'])) {
                     </div>
                     <button type="submit" class="btn p4-btn" name="read-submit">Read Task</button>
                 </form>
-                <?php if (isset($read_task)) : ?>
-                <h4 class="pt-4">Task for id: <?php echo $read_task->__get('id'); ?></h4>
+                <?php if (isset($read_task) && $read_task != 'null') : ?>
+                <h4 class="pt-4">Task for id: <?php echo $id; ?></h4>
                 <hr class="border-1 border-top border-p4-accent mt-0">
-                <pre class="bg-pre"><?php echo json_encode($read_task, JSON_PRETTY_PRINT); ?></pre>
+                <pre class="bg-pre">
+                <?php echo str_replace(['{','}'], '', $read_task); ?>
+                </pre>
                 <?php endif; ?>
             </div>
             <div class="tab-pane fade" id="task-read-all" role="tabpanel" aria-labelledby="task-read-all-tab">
-                <h3 class="pt-3 mb-0">All Tasks for <?php echo $user_id; ?></h3>
+                <h3 class="pt-3 mb-0">All Tasks for <?php echo $username ?? ''; ?></h3>
                 <hr class="border-1 mt-1 mb-3 border-top border-p4-accent">
 
                 <form method="post" action="<?php echo $_SERVER['PHP_SELF']; ?>">
                     <button type="submit" class="btn p4-btn" name="read-all-submit">Read All Tasks</button>
                 </form>
-                <?php if (isset($all_tasks)) :?>
-                <pre class="bg-pre"><?php echo json_encode($all_tasks, JSON_PRETTY_PRINT); ?></pre>
+                <?php if (isset($all_tasks) && $all_tasks != "[]") :?>
+                <pre class="bg-pre">
+                    <?php echo str_replace(['[',']'], '', $all_tasks); ?>
+                </pre>
                 <hr class="border-1 mt-0 mb-3 border-top border-p4-accent">
                 <?php endif; ?>
             </div>
